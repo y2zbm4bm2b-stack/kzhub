@@ -1,0 +1,293 @@
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UIS = game:GetService("UserInputService")
+local Camera = workspace.CurrentCamera
+local LocalPlayer = Players.LocalPlayer
+
+local AimEnabled = false
+local ESPEnabled = false
+
+local AimPart = "Head"
+local FOV = 250
+local Smoothness = 0.2
+local MaxDistance = 3000
+
+local ESPObjects = {}
+
+local gui = Instance.new("ScreenGui")
+gui.Name = "KZ_HUB"
+gui.Parent = game.CoreGui
+
+local frame = Instance.new("Frame",gui)
+frame.Size = UDim2.new(0,260,0,260)
+frame.Position = UDim2.new(0.05,0,0.4,0)
+frame.BackgroundColor3 = Color3.fromRGB(20,20,20)
+
+Instance.new("UICorner",frame).CornerRadius = UDim.new(0,12)
+
+local stroke = Instance.new("UIStroke",frame)
+stroke.Color = Color3.fromRGB(150,0,255)
+stroke.Thickness = 2
+
+local title = Instance.new("TextLabel",frame)
+title.Size = UDim2.new(1,0,0,35)
+title.BackgroundTransparency = 1
+title.Text = "KZ HUB"
+title.TextColor3 = Color3.fromRGB(200,150,255)
+title.Font = Enum.Font.GothamBold
+title.TextSize = 20
+
+local hideBtn = Instance.new("TextButton",frame)
+hideBtn.Size = UDim2.new(0,30,0,30)
+hideBtn.Position = UDim2.new(1,-35,0,3)
+hideBtn.Text = "-"
+hideBtn.BackgroundColor3 = Color3.fromRGB(45,45,45)
+hideBtn.TextColor3 = Color3.new(1,1,1)
+hideBtn.TextSize = 22
+Instance.new("UICorner",hideBtn)
+
+local mini = Instance.new("TextButton",gui)
+mini.Size = UDim2.new(0,50,0,50)
+mini.Position = frame.Position
+mini.BackgroundColor3 = Color3.fromRGB(0,0,0)
+mini.Text = "KZ"
+mini.TextColor3 = Color3.new(1,1,1)
+mini.TextSize = 18
+mini.Font = Enum.Font.GothamBold
+mini.Visible = false
+Instance.new("UICorner",mini).CornerRadius = UDim.new(1,0)
+
+local toggle = Instance.new("TextButton",frame)
+toggle.Position = UDim2.new(0.1,0,0.18,0)
+toggle.Size = UDim2.new(0.8,0,0,36)
+toggle.Text = "AIM : OFF"
+toggle.Font = Enum.Font.GothamBold
+toggle.TextSize = 16
+toggle.BackgroundColor3 = Color3.fromRGB(45,45,45)
+toggle.TextColor3 = Color3.new(1,1,1)
+Instance.new("UICorner",toggle)
+
+local espToggle = Instance.new("TextButton",frame)
+espToggle.Position = UDim2.new(0.1,0,0.33,0)
+espToggle.Size = UDim2.new(0.8,0,0,36)
+espToggle.Text = "ESP : OFF"
+espToggle.Font = Enum.Font.GothamBold
+espToggle.TextSize = 16
+espToggle.BackgroundColor3 = Color3.fromRGB(45,45,45)
+espToggle.TextColor3 = Color3.new(1,1,1)
+Instance.new("UICorner",espToggle)
+
+local fovLabel = Instance.new("TextLabel",frame)
+fovLabel.Position = UDim2.new(0,0,0.48,0)
+fovLabel.Size = UDim2.new(1,0,0,22)
+fovLabel.BackgroundTransparency = 1
+fovLabel.TextColor3 = Color3.new(1,1,1)
+fovLabel.Text = "FOV : "..FOV
+fovLabel.Font = Enum.Font.Gotham
+
+local fovMinus = Instance.new("TextButton",frame)
+fovMinus.Position = UDim2.new(0.1,0,0.56,0)
+fovMinus.Size = UDim2.new(0.35,0,0,36)
+fovMinus.Text = "-"
+fovMinus.TextSize = 30
+fovMinus.BackgroundColor3 = Color3.fromRGB(40,40,40)
+fovMinus.TextColor3 = Color3.new(1,1,1)
+Instance.new("UICorner",fovMinus)
+
+local fovPlus = Instance.new("TextButton",frame)
+fovPlus.Position = UDim2.new(0.55,0,0.56,0)
+fovPlus.Size = UDim2.new(0.35,0,0,36)
+fovPlus.Text = "+"
+fovPlus.TextSize = 30
+fovPlus.BackgroundColor3 = Color3.fromRGB(40,40,40)
+fovPlus.TextColor3 = Color3.new(1,1,1)
+Instance.new("UICorner",fovPlus)
+
+local lockLabel = Instance.new("TextLabel",frame)
+lockLabel.Position = UDim2.new(0,0,0.72,0)
+lockLabel.Size = UDim2.new(1,0,0,22)
+lockLabel.BackgroundTransparency = 1
+lockLabel.TextColor3 = Color3.new(1,1,1)
+lockLabel.Text = "LOCK : "..Smoothness
+lockLabel.Font = Enum.Font.Gotham
+
+local lockMinus = Instance.new("TextButton",frame)
+lockMinus.Position = UDim2.new(0.1,0,0.80,0)
+lockMinus.Size = UDim2.new(0.35,0,0,36)
+lockMinus.Text = "-"
+lockMinus.TextSize = 30
+lockMinus.BackgroundColor3 = Color3.fromRGB(40,40,40)
+lockMinus.TextColor3 = Color3.new(1,1,1)
+Instance.new("UICorner",lockMinus)
+
+local lockPlus = Instance.new("TextButton",frame)
+lockPlus.Position = UDim2.new(0.55,0,0.80,0)
+lockPlus.Size = UDim2.new(0.35,0,0,36)
+lockPlus.Text = "+"
+lockPlus.TextSize = 30
+lockPlus.BackgroundColor3 = Color3.fromRGB(40,40,40)
+lockPlus.TextColor3 = Color3.new(1,1,1)
+Instance.new("UICorner",lockPlus)
+
+local function drag(obj)
+	local dragging=false
+	local dragStart
+	local startPos
+
+	obj.InputBegan:Connect(function(input)
+		if input.UserInputType==Enum.UserInputType.MouseButton1 or input.UserInputType==Enum.UserInputType.Touch then
+			dragging=true
+			dragStart=input.Position
+			startPos=obj.Position
+		end
+	end)
+
+	obj.InputEnded:Connect(function()
+		dragging=false
+	end)
+
+	UIS.InputChanged:Connect(function(input)
+		if dragging then
+			local delta=input.Position-dragStart
+			obj.Position=UDim2.new(startPos.X.Scale,startPos.X.Offset+delta.X,startPos.Y.Scale,startPos.Y.Offset+delta.Y)
+		end
+	end)
+end
+
+drag(frame)
+drag(mini)
+
+hideBtn.MouseButton1Click:Connect(function()
+	frame.Visible=false
+	mini.Visible=true
+	mini.Position=frame.Position
+end)
+
+mini.MouseButton1Click:Connect(function()
+	frame.Visible=true
+	mini.Visible=false
+	frame.Position=mini.Position
+end)
+
+toggle.MouseButton1Click:Connect(function()
+	AimEnabled=not AimEnabled
+	toggle.Text=AimEnabled and "AIM : ON" or "AIM : OFF"
+end)
+
+espToggle.MouseButton1Click:Connect(function()
+	ESPEnabled=not ESPEnabled
+	espToggle.Text=ESPEnabled and "ESP : ON" or "ESP : OFF"
+end)
+
+fovPlus.MouseButton1Click:Connect(function()
+	FOV=math.clamp(FOV+25,100,800)
+	fovLabel.Text="FOV : "..FOV
+end)
+
+fovMinus.MouseButton1Click:Connect(function()
+	FOV=math.clamp(FOV-25,100,800)
+	fovLabel.Text="FOV : "..FOV
+end)
+
+lockPlus.MouseButton1Click:Connect(function()
+	Smoothness=math.clamp(Smoothness+0.05,0.05,0.6)
+	lockLabel.Text="LOCK : "..string.format("%.2f",Smoothness)
+end)
+
+lockMinus.MouseButton1Click:Connect(function()
+	Smoothness=math.clamp(Smoothness-0.05,0.05,0.6)
+	lockLabel.Text="LOCK : "..string.format("%.2f",Smoothness)
+end)
+
+local function getClosestPlayer()
+
+	local closest=nil
+	local shortest=FOV
+
+	for _,player in pairs(Players:GetPlayers()) do
+
+		if player~=LocalPlayer and player.Character then
+
+			local char=player.Character
+			local hum=char:FindFirstChild("Humanoid")
+			local part=char:FindFirstChild(AimPart)
+
+			if part and hum and hum.Health>0 then
+
+				local pos,visible=Camera:WorldToViewportPoint(part.Position)
+
+				if visible then
+
+					local dist=(Vector2.new(pos.X,pos.Y)-Vector2.new(Camera.ViewportSize.X/2,Camera.ViewportSize.Y/2)).Magnitude
+
+					if dist<shortest then
+						shortest=dist
+						closest=part
+					end
+				end
+			end
+		end
+	end
+
+	return closest
+end
+
+local function createESP(player)
+
+	if player==LocalPlayer then return end
+
+	local billboard=Instance.new("BillboardGui")
+	billboard.Size=UDim2.new(0,120,0,40)
+	billboard.AlwaysOnTop=true
+
+	local label=Instance.new("TextLabel",billboard)
+	label.Size=UDim2.new(1,0,1,0)
+	label.BackgroundTransparency=1
+	label.TextColor3=Color3.new(1,1,1)
+	label.TextStrokeTransparency=0
+	label.Font=Enum.Font.GothamBold
+	label.TextScaled=true
+
+	ESPObjects[player]={gui=billboard,label=label}
+end
+
+for _,p in pairs(Players:GetPlayers()) do
+	createESP(p)
+end
+
+Players.PlayerAdded:Connect(createESP)
+
+RunService.RenderStepped:Connect(function()
+
+	if AimEnabled then
+
+		local target=getClosestPlayer()
+
+		if target then
+			local newCF=CFrame.new(Camera.CFrame.Position,target.Position)
+			Camera.CFrame=Camera.CFrame:Lerp(newCF,Smoothness)
+		end
+	end
+
+	for player,data in pairs(ESPObjects) do
+
+		if player.Character and player.Character:FindFirstChild("Head") then
+
+			local hum=player.Character:FindFirstChild("Humanoid")
+
+			if hum and hum.Health>0 and ESPEnabled then
+
+				data.gui.Parent=player.Character.Head
+				data.label.Text=player.Name.." | "..math.floor(hum.Health)
+
+			else
+
+				data.gui.Parent=nil
+
+			end
+
+		end
+
+	end
+
+end)
